@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es-PY">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anamnesis Interactiva</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #1a202c;
+    }
+    .pergunta {
+        transition: opacity 0.5s ease-in-out;
+        min-height: 150px;
+    }
+    .fade-out {
+        opacity: 0;
+    }
+    .topico-titulo {
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+    input[type="text"], input[type="number"] {
+        background-color: #2d3748;
+        border: 1px solid #4a5568;
+        color: #e2e8f0;
+        transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+        outline: none;
+    }
+</style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+<div class="container mx-auto p-6 md:p-12">
+    <h1 class="text-3xl md:text-5xl font-bold text-center mb-10 text-gray-100">Anamnesis Interactiva</h1>
+    <div id="app" class="bg-gray-800 p-6 md:p-10 rounded-xl shadow-lg border border-gray-700"></div>
+</div>
+
+<script>
+// Objeto que armazena as perguntas por seção.
+const perguntas = {
+    datos_personales: [
+        {tipo: 'texto', chave: 'Nombre', texto: '¿Cuál es el nombre del paciente?'},
+        {tipo: 'numero', chave: 'Edad', texto: '¿Cuál es la edad del paciente?'},
+    ],
+    motivo_consulta: [
+        {tipo: 'opcao', chave: 'Motivo de Consulta', texto: '¿Cuál es el motivo de la consulta?', opcoes: ['Dolor', 'Fiebre', 'Vomito', 'Diarrea', 'Disnea', 'Fracturas', 'Otros']}
+    ],
+    Dolor: [
+        {tipo: 'texto', chave: 'Aparición', texto: '¿Cuándo empezó el dolor?'},
+        {tipo: 'texto', chave: 'Localizacion', texto: '¿Dónde está localizado el dolor?'},
+        {tipo: 'texto', chave: 'Irradiación', texto: '¿El dolor irradia a algún lugar?'},
+        {tipo: 'texto', chave: 'Caracter', texto: '¿Cuál es el carácter del dolor?'},
+        {tipo: 'texto', chave: 'Intensidad', texto: '¿Cuál es la intensidad del dolor?'},
+        {tipo: 'texto', chave: 'Atenuantes', texto: '¿Algo atenúa o agrava el dolor?'}
+    ],
+    Fiebre: [
+        {tipo: 'texto', chave: 'Aparición', texto: '¿Cuándo empezó la fiebre?'},
+        {tipo: 'texto', chave: 'Temperatura', texto: '¿Cuál es la temperatura medida?'},
+        {tipo: 'texto', chave: 'Tipo', texto: '¿La fiebre es continua o discontinua?'},
+        {tipo: 'texto', chave: 'Medicación', texto: '¿Está usando alguna medicación?'},
+        {tipo: 'texto', chave: 'Mejoria con medicamento', texto: '¿Hubo mejoría con medicamentos?'},
+        {tipo: 'texto', chave: 'Sintomas', texto: '¿Hay otros síntomas?'}
+    ],
+    "Vomito": [
+        {tipo: 'texto', chave: 'Aparicion', texto: '¿Cuándo comenzaron los vómitos?'},
+        {tipo: 'texto', chave: 'Veces', texto: '¿Cuántas veces por día?'},
+        {tipo: 'texto', chave: 'Contenido', texto: '¿Cuál es el contenido del vómito?'},
+        {tipo: 'texto', chave: 'Volumen', texto: '¿Cuál es el volumen aproximado?'},
+        {tipo: 'texto', chave: 'Color', texto: '¿Cuál es el color del vómito?'},
+        {tipo: 'texto', chave: 'Relacion', texto: '¿Está relacionado con la alimentación?'},
+        {tipo: 'texto', chave: 'Acompaña', texto: '¿Hay otros síntomas asociados?'}
+    ],
+    Diarrea: [
+        {tipo: 'texto', chave: 'Aparicion', texto: '¿Cuándo empezó la diarrea?'},
+        {tipo: 'texto', chave: 'Veces', texto: '¿Cuántas evacuaciones por día?'},
+        {tipo: 'texto', chave: 'Contenido', texto: '¿Cuál es la consistencia de las heces?'},
+        {tipo: 'texto', chave: 'Volumen', texto: '¿Cuál es el volumen aproximado?'},
+        {tipo: 'texto', chave: 'Color', texto: '¿Cuál es el color de las heces?'},
+        {tipo: 'texto', chave: 'Relacion', texto: '¿Está relacionada con la alimentación?'},
+        {tipo: 'texto', chave: 'Acompaña', texto: '¿Hay otros síntomas asociados?'}
+    ],
+    Disnea: [
+        {tipo: 'texto', chave: 'Inicio', texto: '¿Cuándo empezó la disnea?'},
+        {tipo: 'texto', chave: 'duracion', texto: '¿Cuál es la duración de los episodios?'},
+        {tipo: 'texto', chave: 'Tipo', texto: '¿Cuál es el tipo de disnea?'}
+    ],
+    Fracturas: [
+        {tipo: 'texto', chave: 'Cuando', texto: '¿Cuándo ocurrió la fractura?'},
+        {tipo: 'texto', chave: 'Donde', texto: '¿Dónde está localizada (Anatomía)?'},
+        {tipo: 'texto', chave: 'Lugar', texto: '¿Dónde ocurrió el accidente?'},
+        {tipo: 'texto', chave: 'Como', texto: '¿Cómo ocurrió el accidente?'},
+        {tipo: 'texto', chave: 'Sintomas', texto: '¿Hay otros síntomas?'}
+    ],
+    Otros: [
+        {tipo: 'texto', chave: 'Descripcion', texto: 'Por favor, describa el motivo de la consulta.'}
+    ],
+    recorrencia: [
+        {tipo: 'opcao', chave: 'Recorrencia', texto: '¿Tuvo el mismo problema antes?', opcoes: ['Sí', 'No']}
+    ],
+    recorrencia_sim: [
+        {tipo: 'texto', chave: 'Quando foi', texto: '¿Cuándo fue la primera vez?'},
+        {tipo: 'texto', chave: 'Frecuencia', texto: '¿Con qué frecuencia sucede?'},
+        {tipo: 'texto', chave: 'Duracion', texto: '¿Cuánto tiempo duró la última vez?'},
+        {tipo: 'texto', chave: 'O que desencadenó', texto: '¿Qué lo desencadenó la última vez?'},
+        {tipo: 'texto', chave: 'diagnostico anterior', texto: '¿Cuál fue el diagnóstico anterior?'},
+        {tipo: 'texto', chave: 'Internado?', texto: '¿Necesitó ser internado(a)?'},
+        {tipo: 'texto', chave: 'Complicaciones', texto: '¿Tuvo complicaciones?'},
+        {tipo: 'texto', chave: 'Examen antiguo', texto: '¿Existe algún examen antiguo sobre esto?'}
+    ],
+    antecedentes_personales: [
+        {tipo: 'texto', chave: 'Enfermedad de base', texto: '¿Enfermedad de base?'},
+        {tipo: 'texto', chave: 'Cirugias', texto: '¿Cirugias?'},
+        {tipo: 'texto', chave: 'Alergias', texto: '¿Alergias?'},
+        {tipo: 'texto', chave: 'Medicamento', texto: '¿Medicamento en uso?'},
+    ],
+    antecedentes_familiares: [
+        {tipo: 'opcao', chave: 'Familiares', texto: '¿Algun miembro de la familia con enfermedad?', opcoes: ['Sí', 'No']}
+    ],
+    antecedentes_familiares_sim: [
+        {tipo: 'texto', chave: 'Familiar', texto: '¿Quién??'},
+        {tipo: 'texto', chave: 'Muerte', texto: '¿Edad y causa de muerte de los padres y abuelos (se já faleceram).?'}
+    ],
+    habitos_toxicos: [
+        {tipo: 'opcao', chave: 'Habitos tóxicos', texto: '¿Hábitos tóxicos?', opcoes: ['sí', 'no']}
+    ],
+    habitos_toxicos_si: [
+        {tipo: 'texto', chave: 'Tabaquismo', texto: '¿Tabaquismo?'},
+        {tipo: 'texto', chave: 'Etilismo', texto: '¿Etilismo?'}
+    ],
+    actividad_fisica: [
+        {tipo: 'texto', chave: 'Actividad fisica', texto: '¿Actividades Fisicas?'},
+        {tipo: 'texto', chave: 'Frecuencia', texto: '¿Frequencia de las actividad?'}
+    ],
+    alimentacion: [
+        {tipo: 'texto', chave: 'Alimentacion', texto: '¿Como é la alimentacion??'},
+    ],
+    ectoscopia: [
+        {tipo: 'texto', chave: 'ECTOSCOPIA', texto: '¿ECTOSCOPIA?'}
+    ]
+};
+
+// Objeto que mapeia o nome da chave de perguntas para o título a ser exibido.
+const titulos = {
+    'datos_personales': 'Datos Personales',
+    'motivo_consulta': 'Motivo de Consulta',
+    'Dolor': 'Semiología del Dolor',
+    'Fiebre': 'Semiología de la Fiebre',
+    'Vomito': 'Semiología del Vómito',
+    'Diarrea': 'Semiología de la Diarrea',
+    'Disnea': 'Semiología de la Disnea',
+    'Fracturas': 'Semiología de la Fractura',
+    'Otros': 'Otros Síntomas',
+    'recorrencia': 'Antecedentes remotos de la enfermedad actual',
+    'recorrencia_sim': 'Antecedentes remotos de la enfermedad actual',
+    'antecedentes_personales': 'Antecedentes Patológicos Personales',
+    'antecedentes_familiares': 'Antecedentes Familiares',
+    'antecedentes_familiares_sim': 'Antecedentes Familiares',
+    'habitos_toxicos': 'Hábitos Tóxicos',
+    'habitos_toxicos_si': 'Hábitos Tóxicos',
+    'actividad_fisica': 'Actividad Física',
+    'alimentacion': 'Alimentación',
+    'ectoscopia': 'Ectoscopia'
+};
+
+let respostas = {};
+let etapa = 0;
+let fluxo = perguntas.datos_personales;
+let fluxoAnterior = [];
+
+const fluxosSemiologia = [perguntas.Dolor, perguntas.Fiebre, perguntas['Vomito'], perguntas.Diarrea, perguntas.Disnea, perguntas.Fracturas, perguntas.Otros];
+
+function proximoPasso() {
+    etapa++;
+    mostrarPregunta();
+}
+
+function voltarPasso() {
+    if (fluxoAnterior.length > 0) {
+        fluxo = fluxoAnterior.pop();
+        etapa = fluxo.length - 1;
+        mostrarPregunta();
+    }
+}
+
+// Função para chamar a Gemini API com mecanismo de backoff exponencial para re-tentativas.
+async function chamarGeminiAPI(prompt, targetElement, type) {
+    targetElement.innerHTML = `<p class="text-white">Generando ${type}...</p>`;
+    const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+    const payload = { contents: chatHistory };
+    const apiKey = "";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+    let response;
+    let retries = 0;
+    const maxRetries = 5;
+    const initialDelay = 1000;
+
+    while (retries < maxRetries) {
+        try {
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.status === 429) {
+                const delay = initialDelay * Math.pow(2, retries);
+                retries++;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+                targetElement.innerHTML = `<p class="text-white">${result.candidates[0].content.parts[0].text}</p>`;
+                return;
+            }
+        } catch (error) {
+            console.error('Error fetching from API:', error);
+            const delay = initialDelay * Math.pow(2, retries);
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    targetElement.innerHTML = `<p class="text-red-400">Hubo un error al generar ${type}. Por favor, inténtelo de nuevo más tarde.</p>`;
+}
+
+// Função principal para exibir a próxima pergunta
+function mostrarPregunta() {
+    const app = document.getElementById('app');
+    app.innerHTML = '';
+
+    let fluxoChave = Object.keys(perguntas).find(key => perguntas[key] === fluxo);
+    
+    if (titulos[fluxoChave]) {
+        let titulo = document.createElement('h3');
+        titulo.className = 'topico-titulo text-2xl font-semibold mb-4';
+        titulo.innerText = titulos[fluxoChave];
+        app.appendChild(titulo);
+    }
+
+    if (etapa >= fluxo.length) {
+        let proximoFluxo;
+        
+        let motivo = respostas['Motivo de Consulta'] ? respostas['Motivo de Consulta']['Motivo de Consulta'] : '';
+        let familiares = respostas['Antecedentes Familiares'] ? respostas['Antecedentes Familiares']['familiares'] : '';
+        let habitos = respostas['Hábitos Tóxicos'] ? respostas['Hábitos Tóxicos']['habitos'] : '';
+
+        if (fluxo === perguntas.datos_personales) {
+            proximoFluxo = perguntas.motivo_consulta;
+        } else if (fluxo === perguntas.motivo_consulta) {
+            if (perguntas[motivo]) {
+                proximoFluxo = perguntas[motivo];
+            } else {
+                mostrarResultado();
+                return;
+            }
+        } else if (fluxosSemiologia.includes(fluxo)) {
+            proximoFluxo = perguntas.recorrencia;
+        } else if (fluxo === perguntas.recorrencia_sim) {
+            proximoFluxo = perguntas.antecedentes_personales;
+        } else if (fluxo === perguntas.antecedentes_personales) {
+            proximoFluxo = perguntas.antecedentes_familiares;
+        } else if (fluxo === perguntas.antecedentes_familiares) {
+            if (familiares === 'Sí') {
+                proximoFluxo = perguntas.antecedentes_familiares_sim;
+            } else {
+                proximoFluxo = perguntas.habitos_toxicos;
+            }
+        } else if (fluxo === perguntas.antecedentes_familiares_sim) {
+            proximoFluxo = perguntas.habitos_toxicos;
+        } else if (fluxo === perguntas.habitos_toxicos) {
+            if (habitos === 'sí') {
+                proximoFluxo = perguntas.habitos_toxicos_si;
+            } else {
+                proximoFluxo = perguntas.actividad_fisica;
+            }
+        } else if (fluxo === perguntas.habitos_toxicos_si) {
+            proximoFluxo = perguntas.actividad_fisica;
+        } else if (fluxo === perguntas.actividad_fisica) {
+            proximoFluxo = perguntas.alimentacion;
+        } else if (fluxo === perguntas.alimentacion) {
+            proximoFluxo = perguntas.ectoscopia;
+        } else if (fluxo === perguntas.ectoscopia) {
+            mostrarResultado();
+            return;
+        } else {
+            console.log("Flujo de transición no mapeado, deteniéndose aquí.");
+            mostrarResultado();
+            return;
+        }
+        
+        if (proximoFluxo) {
+            fluxoAnterior.push(fluxo);
+            fluxo = proximoFluxo;
+            etapa = 0;
+            mostrarPregunta();
+            return;
+        }
+    }
+
+    let p = fluxo[etapa];
+    let div = document.createElement('div');
+    div.className = 'pergunta';
+    
+    let label = document.createElement('label');
+    label.innerText = p.texto;
+    label.className = "text-lg mb-2 block";
+    div.appendChild(label);
+
+    if (p.tipo === 'texto' || p.tipo === 'numero') {
+        let input = document.createElement('input');
+        input.type = p.tipo === 'numero' ? 'number' : 'text';
+        input.className = "w-full p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring focus:ring-blue-500 focus:border-blue-500";
+        input.onchange = () => {
+            if (!respostas[titulos[fluxoChave]]) {
+                respostas[titulos[fluxoChave]] = {};
+            }
+            respostas[titulos[fluxoChave]][p.chave] = input.value;
+        };
+        div.appendChild(input);
+    } else if (p.tipo === 'opcao') {
+        let botoesDiv = document.createElement('div');
+        botoesDiv.className = "flex flex-wrap gap-4 mt-2";
+        p.opcoes.forEach(op => {
+            let btn = document.createElement('button');
+            btn.innerText = op;
+            btn.className = "px-6 py-3 rounded-lg font-bold text-white transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg " +
+                            "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50";
+            btn.onclick = () => {
+                if (!respostas[titulos[fluxoChave]]) {
+                    respostas[titulos[fluxoChave]] = {};
+                }
+                respostas[titulos[fluxoChave]][p.chave] = op;
+                
+                let proximoFluxo;
+                if (fluxo === perguntas.motivo_consulta) {
+                    proximoFluxo = perguntas[op];
+                } else if (fluxo === perguntas.recorrencia) {
+                    if (op === 'Sí') {
+                        proximoFluxo = perguntas.recorrencia_sim;
+                    } else {
+                        proximoFluxo = perguntas.antecedentes_personales;
+                    }
+                } else if (fluxo === perguntas.antecedentes_familiares) {
+                    if (op === 'Sí') {
+                        proximoFluxo = perguntas.antecedentes_familiares_sim;
+                    } else {
+                        proximoFluxo = perguntas.habitos_toxicos;
+                    }
+                } else if (fluxo === perguntas.habitos_toxicos) {
+                    if (op === 'sí') {
+                        proximoFluxo = perguntas.habitos_toxicos_si;
+                    } else {
+                        proximoFluxo = perguntas.actividad_fisica;
+                    }
+                }
+
+                if (proximoFluxo) {
+                    fluxoAnterior.push(fluxo);
+                    fluxo = proximoFluxo;
+                    etapa = 0;
+                    mostrarPregunta();
+                } else {
+                    proximoPasso();
+                }
+            };
+            botoesDiv.appendChild(btn);
+        });
+        div.appendChild(botoesDiv);
+    }
+
+    if (p.tipo !== 'opcao') {
+        let botoesDiv = document.createElement('div');
+        botoesDiv.className = "flex space-x-4 mt-4";
+        
+        let btnProximo = document.createElement('button');
+        btnProximo.innerText = 'Siguiente';
+        btnProximo.className = "px-6 py-3 rounded-lg font-bold text-white transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg " +
+                               "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50";
+        btnProximo.onclick = () => {
+            if (!respostas[titulos[fluxoChave]] || !respostas[titulos[fluxoChave]][p.chave]) {
+                const input = document.querySelector('input');
+                if (input) {
+                    if (!respostas[titulos[fluxoChave]]) {
+                        respostas[titulos[fluxoChave]] = {};
+                    }
+                    respostas[titulos[fluxoChave]][p.chave] = input.value;
+                }
+            }
+            etapa++; mostrarPregunta(); 
+        };
+        botoesDiv.appendChild(btnProximo);
+        
+        if (fluxo !== perguntas.datos_personales) {
+            let btnVoltar = document.createElement('button');
+            btnVoltar.innerText = 'Volver';
+            btnVoltar.className = "px-6 py-3 rounded-lg font-bold text-gray-200 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg " +
+                                  "bg-gray-700 hover:bg-gray-600 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50";
+            btnVoltar.onclick = voltarPasso;
+            botoesDiv.appendChild(btnVoltar);
+        }
+        
+        div.appendChild(botoesDiv);
+    } else {
+        if (fluxo !== perguntas.datos_personales) {
+            let botoesDiv = document.createElement('div');
+            botoesDiv.className = "flex space-x-4 mt-4";
+            
+            let btnVoltar = document.createElement('button');
+            btnVoltar.innerText = 'Volver';
+            btnVoltar.className = "px-6 py-3 rounded-lg font-bold text-gray-200 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg " +
+                                  "bg-gray-700 hover:bg-gray-600 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50";
+            btnVoltar.onclick = voltarPasso;
+            botoesDiv.appendChild(btnVoltar);
+            div.appendChild(botoesDiv);
+        }
+    }
+    
+    app.appendChild(div);
+}
+
+function mostrarResultado() {
+    const app = document.getElementById('app');
+    app.innerHTML = '<h2 class="text-3xl font-bold mb-6 text-center">Resumen de la Anamnesis</h2>';
+    
+    let botoesAcoesDiv = document.createElement('div');
+    botoesAcoesDiv.className = "flex flex-wrap gap-4 justify-center mb-6";
+
+    let btnResumo = document.createElement('button');
+    btnResumo.innerText = 'Generar Resumen ✨';
+    btnResumo.className = "px-6 py-3 rounded-lg font-bold text-white transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg bg-green-600 hover:bg-green-700 active:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50";
+    btnResumo.onclick = () => {
+        let prompt = `Aquí está la anamnesis de un paciente, por favor, genera un resumen clínico estructurado y conciso en español. Anamnesis: ${JSON.stringify(respostas)}`;
+        let resumoDiv = document.getElementById('resumo-llm');
+        if (!resumoDiv) {
+            resumoDiv = document.createElement('div');
+            resumoDiv.id = 'resumo-llm';
+            resumoDiv.className = "mt-6 p-6 rounded-lg bg-gray-700";
+            app.appendChild(resumoDiv);
+        }
+        chamarGeminiAPI(prompt, resumoDiv, "resumen");
+    };
+    botoesAcoesDiv.appendChild(btnResumo);
+
+    let btnDiagnostico = document.createElement('button');
+    btnDiagnostico.innerText = 'Sugerir Diagnósticos ✨';
+    btnDiagnostico.className = "px-6 py-3 rounded-lg font-bold text-white transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg bg-purple-600 hover:bg-purple-700 active:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50";
+    btnDiagnostico.onclick = () => {
+        let prompt = `Basado en la siguiente anamnesis de un paciente, por favor, proporciona una lista de 3 a 5 posibles diagnósticos diferenciales con una breve justificación para cada uno. La respuesta debe ser en español. Anamnesis: ${JSON.stringify(respostas)}`;
+        let diagnosticoDiv = document.getElementById('diagnostico-llm');
+        if (!diagnosticoDiv) {
+            diagnosticoDiv = document.createElement('div');
+            diagnosticoDiv.id = 'diagnostico-llm';
+            diagnosticoDiv.className = "mt-6 p-6 rounded-lg bg-gray-700";
+            app.appendChild(diagnosticoDiv);
+        }
+        diagnosticoDiv.innerHTML = `<p class="text-yellow-400"><strong>Disclaimer:</strong> Las sugerencias a continuación son generadas por una IA y tienen fines educativos. No deben reemplazar el juicio clínico profesional ni la evaluación médica completa.</p>`;
+        chamarGeminiAPI(prompt, diagnosticoDiv, "diagnósticos");
+    };
+    botoesAcoesDiv.appendChild(btnDiagnostico);
+
+    app.appendChild(botoesAcoesDiv);
+
+    let divResultado = document.createElement('div');
+    divResultado.id = 'resultado';
+    divResultado.className = "bg-gray-700 p-6 rounded-lg";
+
+    for (let titulo in respostas) {
+        if (Object.keys(respostas[titulo]).length > 0) {
+            let secaoDiv = document.createElement('div');
+            secaoDiv.className = 'secao-resumo';
+            secaoDiv.innerHTML += `<h4 class="text-xl font-semibold mt-4 text-blue-300">${titulo}</h4>`;
+            for (let chave in respostas[titulo]) {
+                if (chave !== 'Motivo de Consulta' && chave !== 'recorrencia' && chave !== 'familiares' && chave !== 'habitos') {
+                    secaoDiv.innerHTML += `<p class="mt-2"><strong class="text-gray-300">${chave}:</strong> <span class="text-gray-100">${respostas[titulo][chave]}</span></p>`;
+                }
+            }
+            divResultado.appendChild(secaoDiv);
+        }
+    }
+    
+    app.appendChild(divResultado);
+}
+
+mostrarPregunta();
+</script>
+
+</body>
+</html>
